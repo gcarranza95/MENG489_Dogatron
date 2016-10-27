@@ -10,9 +10,9 @@ Servo wheel;
 const int DEFAULT_POS = 90;
 int servo_pos = DEFAULT_POS;
 
-const int TRIG_PIN = 7;
-const int ECHO_PIN = 8;
-const int SERVO_PIN = 9;
+const int TRIG_PIN = -1;
+const int ECHO_PIN = -1;
+const int SERVO_PIN = 7;
 
 const unsigned int MAX_TIME = 23200;  // Anything over 400 cm (10000 us pulse) is "out of range"
 const float PW_TO_CM = 58.0;
