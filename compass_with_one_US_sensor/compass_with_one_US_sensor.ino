@@ -17,6 +17,9 @@ const int SERVO_PIN = 7;
 const int DEFAULT_POS = 90;
 int servo_pos = DEFAULT_POS;
 
+//SPEAKER VARIABLES
+  const int SPEAKER_PIN = 3;
+
 //US SENSOR RELEVANT VARIABLES 
   const int TRIG_PIN = 10;
   const int ECHO_PIN = 9;
@@ -28,7 +31,8 @@ int servo_pos = DEFAULT_POS;
 
 void setup() {
   Serial.begin(9600);
-
+  //SPEAKER SETUP
+  pinMode(SPEAKER_PIN, OUTPUT);
   //DIGITAL COMPASS SETUP
   Wire.begin();
   Wire.beginTransmission(addr); //start talking
@@ -47,15 +51,17 @@ void setup() {
 void loop() {
   // US SENSOR: distance to nearest obstacle in cm (from datasheet and sample code)
   int pulse_width = ping(TRIG_PIN, ECHO_PIN);
-  int obstacle_dist = (pulse_width < MAX_TIME) ? (pulse_width/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
-
+  float obstacle_dist = (pulse_width < MAX_TIME) ? (pulse_width/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
+  float pitch = 2500*((MAX_DIST-obstacle_dist)/MAX_DIST)+500;
+  //buzz(SPEAKER_PIN, pitch, 500);
   // If impending collision (based on US sensor data), move to the right for 5 seconds
   if(obstacle_dist < DOGATRON_RADIUS) { 
     servo_pos = DEFAULT_POS + 90; // TURN RIGHT
     wheel.write(servo_pos);  
     DEBUG_PRINT("Obstacle distance: "); DEBUG_PRINT(obstacle_dist); DEBUG_PRINT("\n");
     DEBUG_PRINT("Servo position: "); DEBUG_PRINT(servo_pos); DEBUG_PRINT("\n");
-    delay(2000); 
+    //delay(2000); 
+  buzz(SPEAKER_PIN, 500, 1000);
   }
   // If no impending collision, move north based on compass data
   else 
@@ -132,4 +138,15 @@ float getHeading() {    // GETTING HMC5883 X,Y AND Z VALUES
   heading = heading * 180/M_PI;
 
   return heading;
+}
+
+void buzz(int pin, long frequency, long len) {
+  long delayVal = 1000000/frequency/2; // Delay value between transitions; unitless (1 second in us)/(1/s)
+  long numCycles = frequency*len/1000; // Number of cycles; unitless (1/s)/(s)
+  for (long i=0; i < numCycles; i++) {
+    digitalWrite(pin, HIGH);      // high (push out the diaphram)
+    delayMicroseconds(delayVal);  // wait  
+    digitalWrite(pin, LOW);       // low (pull back the diaphram)
+    delayMicroseconds(delayVal);  // wait  
+  }
 }
