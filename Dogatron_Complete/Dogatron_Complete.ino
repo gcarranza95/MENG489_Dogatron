@@ -1,26 +1,26 @@
-#include <Servo.h>
-#include <Wire.h> //I2C Arduino Library for HMC5883 COMPASS
+
 #define addr 0x1E //I2C Address for The HMC5883
-//This comment was created on 10/30
+#define ultrasonic_in_use
+#define servo_in_use
+#define compass_in_use
 #define DEBUG
 #ifdef DEBUG
  #define DEBUG_PRINT(x)  Serial.print(x)
 #else
  #define DEBUG_PRINT(x)
 #endif
-
 //#define FOLLOW //Compass follower, vs. heading compensator
 
-//SERVO VARIABLES
+
+#ifdef servo_in_use 
+#include <Servo.h>
 Servo wheel;
 const int SERVO_PIN = 7;
 const int DEFAULT_POS = 90;
 int servo_pos = DEFAULT_POS;
+#endif
 
-//SPEAKER VARIABLES
-  const int SPEAKER_PIN = 3;
-
-//US SENSOR RELEVANT VARIABLES 
+#ifdef ultrasonic_in_use
   const int TRIG_PIN = 10;
   const int ECHO_PIN = 9;
   const unsigned int MAX_TIME = 23200;  // Anything over 400 cm (10000 us pulse) is "out of range"
@@ -28,69 +28,55 @@ int servo_pos = DEFAULT_POS;
   const unsigned int MAX_DIST = MAX_TIME/PW_TO_CM; 
   const float CM_TO_DEG = MAX_DIST/90;
   const int DOGATRON_RADIUS = 5; // cm
+#endif
 
-void setup() {
-  Serial.begin(9600);
-  //SPEAKER SETUP
-  pinMode(SPEAKER_PIN, OUTPUT);
-  //DIGITAL COMPASS SETUP
-  Wire.begin();
-  Wire.beginTransmission(addr); //start talking
-  Wire.write(0x02); // Set the Register
-  Wire.write(0x00); // Tell the HMC5883 to Continuously Measure
-  Wire.endTransmission();
+#ifdef compass_in_use
+#include <Wire.h> //I2C Arduino Library for HMC5883 COMPASS
+#endif
+
+#ifdef speaker_in_use
+const int SPEAKER_PIN = 3;
+#endif
+
+void setup(){
+Serial.begin(9600);
+
+#ifdef speaker_in_use
+pinMode(SPEAKER_PIN, OUTPUT);
+#endif
+
+#ifdef servo_in_use
+wheel.attach(SERVO_PIN);
+#endif
   
-  //SERVO SETUP
-  wheel.attach(SERVO_PIN);
+#ifdef compass_in_use
+Wire.begin();
+Wire.beginTransmission(addr); //start talking
+Wire.write(0x02); // Set the Register
+Wire.write(0x00); // Tell the HMC5883 to Continuously Measure
+Wire.endTransmission();  
+#endif
 
-  //US Sensor
-  pinMode(TRIG_PIN, OUTPUT);
-  digitalWrite(TRIG_PIN, LOW);
+#ifdef ultrasonic_in_use
+pinMode(TRIG_PIN, OUTPUT);
+digitalWrite(TRIG_PIN, LOW);
+#endif
 }
 
 void loop() {
-  // US SENSOR: distance to nearest obstacle in cm (from datasheet and sample code)
-  int pulse_width = ping(TRIG_PIN, ECHO_PIN);
-  float obstacle_dist = (pulse_width < MAX_TIME) ? (pulse_width/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
-  float pitch = 2500*((MAX_DIST-obstacle_dist)/MAX_DIST)+500;
-  //buzz(SPEAKER_PIN, pitch, 500);
-  // If impending collision (based on US sensor data), move to the right for 5 seconds
-  if(obstacle_dist < DOGATRON_RADIUS) { 
-    servo_pos = DEFAULT_POS + 90; // TURN RIGHT
-    wheel.write(servo_pos);  
-    DEBUG_PRINT("Obstacle distance: "); DEBUG_PRINT(obstacle_dist); DEBUG_PRINT("\n");
-    DEBUG_PRINT("Servo position: "); DEBUG_PRINT(servo_pos); DEBUG_PRINT("\n");
-    //delay(2000); 
-  buzz(SPEAKER_PIN, 500, 1000);
-  }
-  // If no impending collision, move north based on compass data
-  else 
-  {  
-    float heading = getHeading();
-    
-    //set servo position
-    if(heading >= 0 && heading <= 180){
-      #ifdef FOLLOW 
-      servo_pos = DEFAULT_POS + heading;
-      #else
-      servo_pos = DEFAULT_POS - heading;
-      #endif
-    }
-    else{
-      #ifdef FOLLOW
-      servo_pos = DEFAULT_POS - (360-heading);
-      #else
-      servo_pos = DEFAULT_POS + (360-heading);
-      #endif
-    }
-    
-    DEBUG_PRINT("Compass heading: "); DEBUG_PRINT(heading); DEBUG_PRINT("\n");
-    DEBUG_PRINT("Servo position: "); DEBUG_PRINT(servo_pos); DEBUG_PRINT("\n");
+
+  //LIST OF FUNCTIONS
+  //void buzz(int pin, long frequency, long len)
+  //int ping(int trig, int echo)
+  //float convertPulseWidthToDistance(int trig, int echo)
+  //float getHeading()
   
-    wheel.write(servo_pos);
-  }
 }
 
+float convertPulseWidthToDistance(int trig, int echo){
+  int pulse_width = ping(trig, echo);
+  float obstacle_dist = (pulse_width < MAX_TIME) ? (pulse_width/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
+}
 
 int ping(int trig, int echo) {
   unsigned long t1;
@@ -111,7 +97,6 @@ int ping(int trig, int echo) {
 
   return pulse_width;
 }
-
 
 float getHeading() {    // GETTING HMC5883 X,Y AND Z VALUES
   int x,y,z; //triple axis data
@@ -150,3 +135,5 @@ void buzz(int pin, long frequency, long len) {
     delayMicroseconds(delayVal);  // wait  
   }
 }
+
+
