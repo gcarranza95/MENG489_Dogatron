@@ -38,7 +38,23 @@ int servo_pos = DEFAULT_POS;
 const int SPEAKER_PIN = 3;
 #endif
 
+int count = 0; 
+float sum = 0;
+unsigned long time;
+float angle;
+int reading = 1;
+float averageAngle = 0;
+float oldAngle = 0;  
+float angleChange = 0; 
+float theoreticalAngle = 0; 
 void setup(){
+
+//used for digital compass calibration
+//String fileName = "C:\\Users\\Gerardo\\Desktop";
+//table = new Table();
+//table.addColumn("Time (ms)");
+//table.addColumn("Angle (degrees)");
+
 Serial.begin(9600);
 
 #ifdef speaker_in_use
@@ -64,13 +80,58 @@ digitalWrite(TRIG_PIN, LOW);
 }
 
 void loop() {
-
+  //theoreticalAngle = 0; 
   //LIST OF FUNCTIONS
   //void buzz(int pin, long frequency, long len)
   //int ping(int trig, int echo)
-  //float convertPulseWidthToDistance(int trig, int echo)
+  //flo at convertPulseWidthToDistance(int trig, int echo)
   //float getHeading()
   
+  //startTime = millis();
+  if (reading == 3) {
+    time = millis();
+    angle = getHeading();
+    //newRow.setInt("Time (ms)",time);
+    //newRow.setInt("Angle (degrees)",angle);
+    //Serial.print(count); Serial.print(" "); Serial.print(time); Serial.print(" "); Serial.println(angle);
+    delay(100); 
+    count ++;
+    }
+  
+  if (reading == 1) {
+  //oldAngle = averageAngle;
+  sum = 0; 
+  count = 0; 
+  //Serial.print("Count "); Serial.print("Time"); Serial.print(" "); Serial.println("Angle");
+    while (count < 10) {
+    //TableRow newRow = table.addRow();
+    //time = millis();
+    angle = getHeading();
+    sum = sum + angle;
+    //newRow.setInt("Time (ms)",time);
+    //newRow.setInt("Angle (degrees)",angle);
+    //Serial.print(count); Serial.print(" "); Serial.print(time); Serial.print(" "); Serial.println(angle);
+    delay(100); 
+    count ++;
+  }
+  //reading = 0;
+  averageAngle = sum/count; 
+  //angleChange = averageAngle - oldAngle;
+  //Serial.print("Average Angle: "); Serial.println(averageAngle);
+  //Serial.print("Change in angle from previous measurement: "); Serial.println(angleChange);
+  Serial.print(theoreticalAngle); Serial.print(" "); Serial.println(averageAngle);
+  theoreticalAngle = theoreticalAngle + 30;
+  if (theoreticalAngle == 360){
+    reading = 0;
+  }
+  //Serial.print("Pause for 10 seconds...");
+  delay(10000);
+  //reading = 1;
+  }
+  
+  
+//  Serial.print("Digital Compass Heading: "); Serial.println(x);
+  //delay(2000);
 }
 
 float convertPulseWidthToDistance(int trig, int echo){
@@ -119,7 +180,7 @@ float getHeading() {    // GETTING HMC5883 X,Y AND Z VALUES
 
   //Calculate heading, with range 0-360
   float heading = atan2(y,x);
-  heading = (heading<0) ? heading + 2*M_PI : heading;
+  //heading = (heading<0) ? heading + 2*M_PI : heading;
   heading = heading * 180/M_PI;
 
   return heading;
