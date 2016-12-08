@@ -38,22 +38,19 @@ int servo_pos = DEFAULT_POS;
 const int SPEAKER_PIN = 3;
 #endif
 
+//used for digital compass testing
 int count = 0; 
-float sum = 0;
+//float sum = 0;
 unsigned long time;
 float angle;
-int reading = 1;
-float averageAngle = 0;
-float oldAngle = 0;  
-float angleChange = 0; 
-float theoreticalAngle = 0; 
-void setup(){
+int reading = 4;
+//float averageAngle = 0;
+//float oldAngle = 0;  
+//float angleChange = 0; 
+//float theoreticalAngle = 0; 
 
-//used for digital compass calibration
-//String fileName = "C:\\Users\\Gerardo\\Desktop";
-//table = new Table();
-//table.addColumn("Time (ms)");
-//table.addColumn("Angle (degrees)");
+
+void setup(){
 
 Serial.begin(9600);
 
@@ -79,8 +76,7 @@ digitalWrite(TRIG_PIN, LOW);
 #endif
 }
 
-void loop() {
-  //theoreticalAngle = 0; 
+void loop() { 
   //LIST OF FUNCTIONS
   //void buzz(int pin, long frequency, long len)
   //int ping(int trig, int echo)
@@ -88,50 +84,43 @@ void loop() {
   //float getHeading()
   
   //startTime = millis();
+  if (reading == 4) //testing micro-servo with compass
+  {
+    angle = getHeading();
+    
+    servo_pos = DEFAULT_POS - angle ;
+//    if(angle >= 0 && angle <=180){
+//    //servo_pos = DEFAULT_POS + headingDegrees; //compass follower
+//    servo_pos = DEFAULT_POS - angle; //direction compensator
+//  }
+//  else{
+//    //servo_pos = DEFAULT_POS - (360-headingDegrees); //compass follower
+//    servo_pos = DEFAULT_POS + (360-angle); //direction compensator
+//  }
+  Serial.print(angle); Serial.print(" "); Serial.println(servo_pos);
+  wheel.write(servo_pos);
+  delay(100); 
+   }
+  
+  
   if (reading == 3) {
     time = millis();
     angle = getHeading();
-    //newRow.setInt("Time (ms)",time);
-    //newRow.setInt("Angle (degrees)",angle);
-    //Serial.print(count); Serial.print(" "); Serial.print(time); Serial.print(" "); Serial.println(angle);
+    Serial.println(angle);
     delay(100); 
     count ++;
     }
   
   if (reading == 1) {
-  //oldAngle = averageAngle;
-  sum = 0; 
-  count = 0; 
-  //Serial.print("Count "); Serial.print("Time"); Serial.print(" "); Serial.println("Angle");
-    while (count < 10) {
-    //TableRow newRow = table.addRow();
-    //time = millis();
+    count = 0; 
+    while (count < 100) {
     angle = getHeading();
-    sum = sum + angle;
-    //newRow.setInt("Time (ms)",time);
-    //newRow.setInt("Angle (degrees)",angle);
-    //Serial.print(count); Serial.print(" "); Serial.print(time); Serial.print(" "); Serial.println(angle);
+    Serial.println(angle);
     delay(100); 
     count ++;
   }
-  //reading = 0;
-  averageAngle = sum/count; 
-  //angleChange = averageAngle - oldAngle;
-  //Serial.print("Average Angle: "); Serial.println(averageAngle);
-  //Serial.print("Change in angle from previous measurement: "); Serial.println(angleChange);
-  Serial.print(theoreticalAngle); Serial.print(" "); Serial.println(averageAngle);
-  theoreticalAngle = theoreticalAngle + 30;
-  if (theoreticalAngle == 360){
-    reading = 0;
-  }
-  //Serial.print("Pause for 10 seconds...");
-  delay(10000);
-  //reading = 1;
-  }
-  
-  
-//  Serial.print("Digital Compass Heading: "); Serial.println(x);
-  //delay(2000);
+  reading = 0;
+}
 }
 
 float convertPulseWidthToDistance(int trig, int echo){
