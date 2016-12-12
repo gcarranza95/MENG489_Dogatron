@@ -1,11 +1,12 @@
 
 #define addr 0x1E //I2C Address for The HMC5883
-#define ultrasonic_in_use
+//#define ultrasonic_in_use
 #define servo_in_use
-#define compass_in_use
+//#define compass_in_use
+#define speaker_in_use
 #define DEBUG
 #ifdef DEBUG
- #define DEBUG_PRINT(x)  Serial.print(x)
+ #define DEBUG_PRINT(fx)  Serial.print(x)
 #else
  #define DEBUG_PRINT(x)
 #endif
@@ -35,33 +36,37 @@ int servo_pos = DEFAULT_POS;
 #endif
 
 #ifdef speaker_in_use
-const int SPEAKER_PIN = 3;
+const int SPEAKER_PIN = 7;
 #endif
 
 //used for digital compass testing
 int count = 0; 
-//float sum = 0;
 unsigned long time;
 float angle;
-int reading = 4;
-//float averageAngle = 0;
-//float oldAngle = 0;  
-//float angleChange = 0; 
-//float theoreticalAngle = 0; 
-
+int test_type = 6;
 
 void setup(){
 
 Serial.begin(9600);
 
+
 #ifdef speaker_in_use
 pinMode(SPEAKER_PIN, OUTPUT);
 #endif
 
+  if (test_type == 4)
+  {
+    tone(SPEAKER_PIN,262,250);
+    noTone(SPEAKER_PIN);
+    test_type = 0;
+  }
+
+
 #ifdef servo_in_use
 wheel.attach(SERVO_PIN);
 #endif
-  
+
+
 #ifdef compass_in_use
 Wire.begin();
 Wire.beginTransmission(addr); //start talking
@@ -82,52 +87,74 @@ void loop() {
   //int ping(int trig, int echo)
   //flo at convertPulseWidthToDistance(int trig, int echo)
   //float getHeading()
+
+  if (test_type == 6){
+  wheel.write(120);
+  for (int i = 1; i<60; i+=3){
+  wheel.write(120-i);
+  delay(50);
+  }
+  for (int i = 1; i<60; i+=3){
+  wheel.write(60+i);
+  delay(50);
+  }
+  }
   
-  //startTime = millis();
-  if (reading == 4) //testing micro-servo with compass
+  if(test_type == 5)
   {
-    angle = getHeading();
+    Serial.println("On");
+    //tone(SPEAKER_PIN,100);
     
-    servo_pos = DEFAULT_POS - angle ;
-//    if(angle >= 0 && angle <=180){
-//    //servo_pos = DEFAULT_POS + headingDegrees; //compass follower
-//    servo_pos = DEFAULT_POS - angle; //direction compensator
-//  }
-//  else{
-//    //servo_pos = DEFAULT_POS - (360-headingDegrees); //compass follower
-//    servo_pos = DEFAULT_POS + (360-angle); //direction compensator
-//  }
+    tone(SPEAKER_PIN,600);
+delay(2000);
+noTone(SPEAKER_PIN);
+delay(2000);
+    
+  }  
+
+  #ifdef servo_in_use
+  #ifdef compass_in_use
+  if (test_type == 3) //testing micro-servo with compass, micro-servo points "north"
+  {
+  angle = getHeading();
+  servo_pos = DEFAULT_POS - angle ;
   Serial.print(angle); Serial.print(" "); Serial.println(servo_pos);
   wheel.write(servo_pos);
   delay(100); 
-   }
+  }
+  #endif
+  #endif
   
-  
-  if (reading == 3) {
+#ifdef compass_in_use  
+  if (test_type == 2) //testing compass, does not stop reading values
+  {
     time = millis();
     angle = getHeading();
     Serial.println(angle);
     delay(100); 
     count ++;
     }
-  
-  if (reading == 1) {
+#endif
+#ifdef compass_in_use  
+  if (test_type == 1) //testing compass, stops reading after "count" values 
+  { 
     count = 0; 
     while (count < 100) {
     angle = getHeading();
     Serial.println(angle);
     delay(100); 
     count ++;
+    }
+  test_type = 0;
   }
-  reading = 0;
+#endif
 }
-}
-
+#ifdef ultrasonic_in_use
 float convertPulseWidthToDistance(int trig, int echo){
   int pulse_width = ping(trig, echo);
   float obstacle_dist = (pulse_width < MAX_TIME) ? (pulse_width/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
 }
-
+#endif
 int ping(int trig, int echo) {
   unsigned long t1;
   unsigned long t2;
@@ -148,6 +175,7 @@ int ping(int trig, int echo) {
   return pulse_width;
 }
 
+#ifdef compass_in_use
 float getHeading() {    // GETTING HMC5883 X,Y AND Z VALUES
   int x,y,z; //triple axis data
 
@@ -174,6 +202,7 @@ float getHeading() {    // GETTING HMC5883 X,Y AND Z VALUES
 
   return heading;
 }
+#endif
 
 void buzz(int pin, long frequency, long len) {
   long delayVal = 1000000/frequency/2; // Delay value between transitions; unitless (1 second in us)/(1/s)
