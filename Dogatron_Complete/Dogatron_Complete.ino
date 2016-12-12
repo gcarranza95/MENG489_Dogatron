@@ -1,15 +1,25 @@
 
 #define addr 0x1E //I2C Address for The HMC5883
-//#define ultrasonic_in_use
+#define all_in_use
+#ifdef all_in_use
+#define ultrasonic_in_use
 #define servo_in_use
-<<<<<<< HEAD
-//#define compass_in_use
+#define compass_in_use
 #define speaker_in_use
-=======
 #define compass_in_use
 #define hap1_in_use
 #define hap2_in_use
->>>>>>> origin/master
+#endif
+
+//#define ultrasonic_in_use
+//#define servo_in_use
+//#define compass_in_use
+//#define speaker_in_use
+//#define compass_in_use
+//#define hap1_in_use
+//#define hap2_in_use
+
+
 #define DEBUG
 #ifdef DEBUG
  #define DEBUG_PRINT(fx)  Serial.print(x)
@@ -28,8 +38,17 @@ int servo_pos = DEFAULT_POS;
 #endif
 
 #ifdef ultrasonic_in_use
-  const int TRIG_PIN = 10;
-  const int ECHO_PIN = 9;
+// US sensor setup: 0=left, 1=center, 2=right
+  const int TRIG_PIN;
+  const unsigned int NUM_SENSORS = 3;
+  const int TRIG_PINS[NUM_SENSORS] = {8,10,12};
+  const int ECHO_PINS[NUM_SENSORS] = {9,11,13};
+  const int LFT = 0;
+  const int CTR = 1;
+  const int RGT = 2; 
+  int obst_dist[3]; // Obstacle distance from given sensor
+  int obst_bool[3]; // Is obstacle present at given sensor?
+  int turn_dir = 0;
   const unsigned int MAX_TIME = 23200;  // Anything over 400 cm (10000 us pulse) is "out of range"
   const float PW_TO_CM = 58.0;
   const unsigned int MAX_DIST = MAX_TIME/PW_TO_CM; 
@@ -41,8 +60,8 @@ int servo_pos = DEFAULT_POS;
 #include <Wire.h> //I2C Arduino Library for HMC5883 COMPASS
 #endif
 
-#ifdef speaker_in_use
-const int SPEAKER_PIN = 7;
+#ifdef speaker_in_use //
+const int SPEAKER_PIN = 6;
 #endif
 
 #ifdef hap1_in_use
@@ -53,11 +72,17 @@ const int HAP1_PIN = 4;
 const int HAP2_PIN = 5;
 #endif
 
+//used for testing of different sensors. If test_type == 0, then no tests are being conducted
+int test_type = 0;
+
 //used for digital compass testing
 int count = 0; 
 unsigned long time;
 float angle;
-int test_type = 6;
+
+
+//variable to alternate between different implemented steering methods
+int steering_method = 1; 
 
 void setup(){
 
@@ -78,6 +103,7 @@ pinMode(SPEAKER_PIN, OUTPUT);
 
 #ifdef servo_in_use
 wheel.attach(SERVO_PIN);
+wheel.write(DEFAULT_POS); //is this necessary?
 #endif
 
 
@@ -110,6 +136,38 @@ void loop() {
   //flo at convertPulseWidthToDistance(int trig, int echo)
   //float getHeading()
 
+  //first possible steering method
+  #ifdef all_in_use
+  if(steering_method == 1){
+    int intended_wheel_angle;
+    int current_wheel_angle = wheel.read(); // reads servo's current angle
+    int response = collisionResponse();
+    if(response == 0)// if no impending collision, then try to follow north
+    {
+     float current_heading = getHeading(); 
+     
+     if (abs(current_heading)< 90) //Dogatron is facing NE or NW
+     {
+      intended_wheel_angle = DEFAULT_POS- current_heading;
+     }
+     else if(current_heading >=90) //Dogatron is facing SE, turn utmost left (0 value for servo)
+     {
+      intended_wheel_angle = 0;
+     }
+     else{ //Dogatron is facing SW, turn utmost right (180 value for servo)
+      intended_wheel_angle = 180;
+     }
+     wheelTurn(current_wheel_angle,intended_wheel_angle,50);
+    }
+    else { //otherwise, collisionResponse's output would determine the wheel.write value
+      intended_wheel_angle = response;
+      wheelTurn(current_wheel_angle,intended_wheel_angle,50);
+    }
+  }
+  #endif
+
+
+  //TESTS SIMPLE WHEEL TURNING BACK AND FORTH
   if (test_type == 6){
   wheel.write(120);
   for (int i = 1; i<60; i+=3){
@@ -121,16 +179,14 @@ void loop() {
   delay(50);
   }
   }
-  
+  //tests speaker   
   if(test_type == 5)
   {
     Serial.println("On");
-    //tone(SPEAKER_PIN,100);
-    
     tone(SPEAKER_PIN,600);
-delay(2000);
-noTone(SPEAKER_PIN);
-delay(2000);
+    delay(2000);
+    noTone(SPEAKER_PIN);
+    delay(2000);
     
   }  
 
@@ -157,6 +213,7 @@ delay(2000);
     count ++;
     }
 #endif
+
 #ifdef compass_in_use  
   if (test_type == 1) //testing compass, stops reading after "count" values 
   { 
@@ -171,6 +228,7 @@ delay(2000);
   }
 #endif
 }
+
 #ifdef ultrasonic_in_use
 float convertPulseWidthToDistance(int trig, int echo){
   int pulse_width = ping(trig, echo);
@@ -198,6 +256,7 @@ int ping(int trig, int echo) {
 }
 
 #ifdef compass_in_use
+//output format: 0 represents north 
 float getHeading() {    // GETTING HMC5883 X,Y AND Z VALUES
   int x,y,z; //triple axis data
 
@@ -217,7 +276,7 @@ float getHeading() {    // GETTING HMC5883 X,Y AND Z VALUES
     y |= Wire.read(); //LSB y
   }
 
-  //Calculate heading, with range 0-360
+  //Calculate heading, with range -180,180 in radians
   float heading = atan2(y,x);
   //heading = (heading<0) ? heading + 2*M_PI : heading;
   heading = heading * 180/M_PI;
@@ -254,3 +313,39 @@ void vibrator(int switcher, int pin, int type) {
   digitalWrite(pin,LOW); //set pin to off
  }
 }
+#ifdef ultrasonic_in_use
+float collisionResponse(){
+  int pw;
+  float obst_dist[NUM_SENSORS];
+  bool obst_bool[NUM_SENSORS];
+  float servo_pos;
+
+  // Get current obstacle distances (Note that this takes 3*(10 + wait + pw) us)
+  // May want to change to doing center ping first, then both side pings at once?
+  for(int i = 0; i < NUM_SENSORS; i++) {
+    pw = ping(TRIG_PINS[i], ECHO_PINS[i]);
+    obst_dist[i] = (pw < MAX_TIME) ? (pw/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
+    obst_bool[i] = (pw < MAX_TIME) ? true : false;
+  }
+
+  //Choose direction: 0 = forward, 1 = right, -1 = left
+  turn_dir = obst_bool[CTR] ? ((obst_dist[LFT] < obst_dist[RGT]) ? 1 : -1) : 0;
+
+  // Calculate and set dogatron position based on obstacle distance
+  servo_pos = DEFAULT_POS + turn_dir*(MAX_DIST - obst_dist[CTR])/CM_TO_DEG;
+
+  return servo_pos;
+
+}
+#endif
+#ifdef servo_in_use
+void wheelTurn(int start_angle,int end_angle,int ms_speed)
+{
+   int direction = (end_angle - start_angle < 0) ? -1 : 1; // -1 is left , 1 is right 
+     for (int i = 1; i<=abs(end_angle-start_angle); i++)
+     {
+      wheel.write(start_angle+i*direction);
+      delay(ms_speed); // this would determine how fast the servo would go
+     }
+}
+#endif
