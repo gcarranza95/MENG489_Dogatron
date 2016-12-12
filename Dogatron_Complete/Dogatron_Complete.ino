@@ -148,19 +148,8 @@ void loop() {
     if(wheel_response == 0)// if no impending collision, then try to follow north
     {
      float current_heading = getHeading(); 
-     Serial.print("Heading "); Serial.print(current_heading);
+     //Serial.print("Heading "); Serial.print(current_heading);
      intended_wheel_angle = 180- constrain(DEFAULT_POS-current_heading,SERVO_LEFT_LIMIT,SERVO_RIGHT_LIMIT);
-//     if (abs(current_heading)< 90) //Dogatron is facing NE or NW
-//     {
-//      intended_wheel_angle = DEFAULT_POS- current_heading;
-//     }
-//     else if(current_heading >=90) //Dogatron is facing SE, turn utmost left (0 value for servo)
-//     {
-//      intended_wheel_angle = 0;
-//     }
-//     else{ //Dogatron is facing SW, turn utmost right (180 value for servo)
-//      intended_wheel_angle = 180;
-//     }
      wheelTurn(current_wheel_angle,intended_wheel_angle,50);
     }
     else { //otherwise, collisionResponse's output would determine the wheel.write value
@@ -168,8 +157,8 @@ void loop() {
       wheelTurn(current_wheel_angle,intended_wheel_angle,50);
     }
     
-    Serial.print("Intended Wheel Angle: "); Serial.print(intended_wheel_angle);
-    Serial.print(" Servo reading: "); Serial.println(wheel.read()); 
+    //Serial.print("Intended Wheel Angle: "); Serial.print(intended_wheel_angle);
+    //Serial.print(" Servo reading: "); Serial.println(wheel.read()); 
   }
   
   #endif
@@ -322,29 +311,29 @@ void vibrator(int switcher, int pin, int type) {
  }
 }
 #ifdef ultrasonic_in_use
-//float collisionResponse(){
-//  int pw;
-//  float obst_dist[NUM_SENSORS];
-//  bool obst_bool[NUM_SENSORS];
-//  float servo_pos;
-//
-//  // Get current obstacle distances (Note that this takes 3*(10 + wait + pw) us)
-//  // May want to change to doing center ping first, then both side pings at once?
-//  for(int i = 0; i < NUM_SENSORS; i++) {
-//    pw = ping(TRIG_PINS[i], ECHO_PINS[i]);
-//    obst_dist[i] = (pw < MAX_TIME) ? (pw/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
-//    obst_bool[i] = (pw < MAX_TIME) ? true : false;
-//  }
-//
-//  //Choose direction: 0 = forward, 1 = right, -1 = left
-//  turn_dir = obst_bool[CTR] ? ((obst_dist[LFT] < obst_dist[RGT]) ? 1 : -1) : 0;
-//
-//  // Calculate and set dogatron position based on obstacle distance
-//  servo_pos = DEFAULT_POS + turn_dir*(MAX_DIST - obst_dist[CTR])/CM_TO_DEG;
-//
-//  return servo_pos;
-//
-//}
+float collisionResponse(){
+  int pw;
+  float obst_dist[NUM_SENSORS];
+  bool obst_bool[NUM_SENSORS];
+  float servo_pos;
+
+  // Get current obstacle distances (Note that this takes 3*(10 + wait + pw) us)
+  // May want to change to doing center ping first, then both side pings at once?
+  for(int i = 0; i < NUM_SENSORS; i++) {
+    pw = ping(TRIG_PINS[i], ECHO_PINS[i]);
+    obst_dist[i] = (pw < MAX_TIME) ? (pw/PW_TO_CM) : (MAX_TIME/PW_TO_CM);
+    obst_bool[i] = (pw < MAX_TIME) ? true : false;
+  }
+
+  //Choose direction: 0 = forward, 1 = right, -1 = left
+  turn_dir = obst_bool[CTR] ? ((obst_dist[LFT] < obst_dist[RGT]) ? 1 : -1) : 0;
+
+  // Calculate and set dogatron position based on obstacle distance
+  servo_pos = DEFAULT_POS + turn_dir*(MAX_DIST - obst_dist[CTR])/CM_TO_DEG;
+
+  return servo_pos;
+
+}
 float collisionResponse(){
   return 0;
   }
