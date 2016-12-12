@@ -84,7 +84,6 @@ Wire.endTransmission();
 pinMode(TRIG_PIN, OUTPUT);
 digitalWrite(TRIG_PIN, LOW);
 #endif
-}
 
 #ifdef hap1_in_use
 pinMode(HAP1_PIN,OUTPUT);
@@ -93,6 +92,7 @@ pinMode(HAP1_PIN,OUTPUT);
 #ifdef hap2_in_use
 pinMode(HAP2_PIN,OUTPUT);
 #endif
+}
 
 void loop() { 
   //LIST OF FUNCTIONS
@@ -220,3 +220,4 @@ void vibrator(int switcher, int pin, int type) {
  else{
   digitalWrite(pin,LOW); //set pin to off
  }
+}
