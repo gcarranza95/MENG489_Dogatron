@@ -2,8 +2,14 @@
 #define addr 0x1E //I2C Address for The HMC5883
 //#define ultrasonic_in_use
 #define servo_in_use
+<<<<<<< HEAD
 //#define compass_in_use
 #define speaker_in_use
+=======
+#define compass_in_use
+#define hap1_in_use
+#define hap2_in_use
+>>>>>>> origin/master
 #define DEBUG
 #ifdef DEBUG
  #define DEBUG_PRINT(fx)  Serial.print(x)
@@ -37,6 +43,14 @@ int servo_pos = DEFAULT_POS;
 
 #ifdef speaker_in_use
 const int SPEAKER_PIN = 7;
+#endif
+
+#ifdef hap1_in_use
+const int HAP1_PIN = 4;
+#endif
+
+#ifdef hap2_in_use
+const int HAP2_PIN = 5;
 #endif
 
 //used for digital compass testing
@@ -78,6 +92,14 @@ Wire.endTransmission();
 #ifdef ultrasonic_in_use
 pinMode(TRIG_PIN, OUTPUT);
 digitalWrite(TRIG_PIN, LOW);
+#endif
+
+#ifdef hap1_in_use
+pinMode(HAP1_PIN,OUTPUT);
+#endif
+
+#ifdef hap2_in_use
+pinMode(HAP2_PIN,OUTPUT);
 #endif
 }
 
@@ -215,4 +237,20 @@ void buzz(int pin, long frequency, long len) {
   }
 }
 
-
+void vibrator(int switcher, int pin, int type) {
+  if (switcher == 1)    //function is on if value "1" is passed to it
+  {
+   if (type == 1) { 
+    delay(1000);          //set pin to intermittent buzz 
+    digitalWrite(pin,HIGH);   
+    delay(1000);           
+    digitalWrite(pin,LOW);   
+  }
+  else{
+   digitalWrite(pin,HIGH);   //set pin to continuous buzz 
+  }
+ } 
+ else{
+  digitalWrite(pin,LOW); //set pin to off
+ }
+}
