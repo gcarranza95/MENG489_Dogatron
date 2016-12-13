@@ -164,6 +164,10 @@ void loop(){
      vibrator(1,HAP1_PIN,0);
      vibrator(1,HAP2_PIN,0);
     }
+   else{
+      vibrator(0,HAP1_PIN,0);
+      vibrator(0,HAP2_PIN,0);
+    }
     
      
    //collisionResponse's output would determine the wheel.write value
