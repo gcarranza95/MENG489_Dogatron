@@ -109,8 +109,8 @@ const int HAP2_PIN = 5;
 #endif
 
 //variable to alternate between different implemented steering methods
-                                                                                                                                                          int steering_method = 1;
-                                                                                                                                                          int test_type = 0;  
+                                      int steering_method = 1;
+                                      int test_type = 0;  
 
 void setup()
 {
@@ -159,7 +159,14 @@ void loop(){
     int intended_wheel_angle;
     int current_wheel_angle = wheel.read(); // reads servo's current angle    
     int wheel_response = collisionResponse();
-      //collisionResponse's output would determine the wheel.write value
+    if(wheel_response> 95 || wheel_response < 85)
+    {
+     vibrator(1,HAP1_PIN,0);
+     vibrator(1,HAP2_PIN,0);
+    }
+    
+     
+   //collisionResponse's output would determine the wheel.write value
     intended_wheel_angle = constrain(wheel_response,SERVO_LEFT_LIMIT,SERVO_RIGHT_LIMIT);
     DEBUG_PRINT(wheel_response); DEBUG_PRINT(" "); DEBUG_PRINTLN(intended_wheel_angle);
     
